@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>계산기</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px;
+        background: #f3f4f6;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+          'Malgun Gothic', sans-serif;
+      }
+
+      .calculator {
+        width: 100%;
+        max-width: 320px;
+        background: #111827;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+
+      .display {
+        color: #ffffff;
+        text-align: right;
+        font-size: 40px;
+        min-height: 72px;
+        padding: 16px 8px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .buttons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+
+      button {
+        height: 60px;
+        font-size: 20px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        background: #374151;
+        color: #ffffff;
+      }
+
+      button:hover {
+        filter: brightness(1.15);
+      }
+
+      button.function {
+        background: #6b7280;
+      }
+
+      button.operator {
+        background: #f59e0b;
+      }
+
+      button.equals {
+        background: #2563eb;
+      }
+
+      button.wide2 {
+        grid-column: span 2;
+      }
+
+      button.wide3 {
+        grid-column: span 3;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="calculator">
+      <div class="display" id="display">0</div>
+
+      <div class="buttons">
+        <button class="function wide3" data-action="clear">C</button>
+        <button class="operator" data-op="/">÷</button>
+
+        <button data-digit="7">7</button>
+        <button data-digit="8">8</button>
+        <button data-digit="9">9</button>
+        <button class="operator" data-op="*">×</button>
+
+        <button data-digit="4">4</button>
+        <button data-digit="5">5</button>
+        <button data-digit="6">6</button>
+        <button class="operator" data-op="-">−</button>
+
+        <button data-digit="1">1</button>
+        <button data-digit="2">2</button>
+        <button data-digit="3">3</button>
+        <button class="operator" data-op="+">+</button>
+
+        <button class="wide2" data-digit="0">0</button>
+        <button data-action="decimal">.</button>
+        <button class="equals" data-action="equals">=</button>
+      </div>
+    </main>
+
+    <script>
+      const display = document.getElementById('display');
+
+      // 현재 상태
+      let current = '0'; // 지금 화면에 보이는 숫자 (문자열)
+      let previous = null; // 연산자 앞에 있던 숫자
+      let operator = null; // 대기 중인 연산자 ("+", "-", "*", "/")
+      let resetNext = false; // 다음 숫자 입력 때 화면을 새로 시작할지 여부
+
+      // 두 수와 연산자를 받아 계산 결과를 반환합니다. 0으로 나누면 null을 반환합니다.
+      function calculate(left, operator, right) {
+        switch (operator) {
+          case '+':
+            return left + right;
+          case '-':
+            return left - right;
+          case '*':
+            return left * right;
+          case '/':
+            return right !== 0 ? left / right : null;
+          default:
+            return null;
+        }
+      }
+
+      function render() {
+        display.textContent = current;
+      }
+
+      function clearAll() {
+        current = '0';
+        previous = null;
+        operator = null;
+        resetNext = false;
+      }
+
+      function inputDigit(digit) {
+        // TODO(human): 오류 상태에서 숫자를 누르면 어떻게 할지 정하고 구현하세요.
+        if (resetNext || current === '0') {
+          current = digit;
+          resetNext = false;
+        } else {
+          current += digit;
+        }
+      }
+
+      function inputDecimal() {
+        if (resetNext) {
+          current = '0.';
+          resetNext = false;
+          return;
+        }
+        if (!current.includes('.')) {
+          current += '.';
+        }
+      }
+
+      // 대기 중인 연산을 실행하고 결과를 화면에 올립니다.
+      function evaluate() {
+        if (operator === null) return;
+
+        const result = calculate(previous, operator, Number(current));
+
+        if (result === null) {
+          current = '오류';
+        } else {
+          // 0.1 + 0.2 같은 부동소수점 오차를 줄이기 위해 유효숫자 12자리로 정리합니다.
+          current = String(Number(result.toPrecision(12)));
+        }
+
+        previous = null;
+        operator = null;
+        resetNext = true;
+      }
+
+      function chooseOperator(nextOperator) {
+        // current 가 오류가 되면 operator에 반응하지 않도록 함
+        if (current === '오류') {
+          return;
+        }
+        // 연산자를 연달아 누르면(예: 3 + 4 ×) 앞의 연산을 먼저 계산합니다.
+        if (operator !== null && !resetNext) {
+          evaluate();
+          if (current === '오류') return;
+        }
+
+        previous = Number(current);
+        operator = nextOperator;
+        resetNext = true;
+      }
+
+      document.querySelector('.buttons').addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        const { digit, op, action } = button.dataset;
+
+        if (digit !== undefined) inputDigit(digit);
+        else if (op !== undefined) chooseOperator(op);
+        else if (action === 'decimal') inputDecimal();
+        else if (action === 'equals') evaluate();
+        else if (action === 'clear') clearAll();
+
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
