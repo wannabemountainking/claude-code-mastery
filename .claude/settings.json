@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": ["Bash(rm:*)"],
+    "deny": [],
+    "ask": []
+  },
+  "outputStyle": "Learning"
+}
