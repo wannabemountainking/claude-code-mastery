@@ -2,7 +2,8 @@
   "permissions": {
     "allow": ["Bash(rm:*)"],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "plan"
   },
   "outputStyle": "Learning"
 }
